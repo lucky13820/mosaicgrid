@@ -30,9 +30,6 @@ figma.ui.onmessage = async (msg: { type: string; options?: GridOptions }) => {
         }
       }
 
-      console.log("Inserting grid with options:", msg.options);
-      console.log("Grid data:", currentGridData);
-
       if (
         !Array.isArray(currentGridData) ||
         currentGridData.length === 0 ||
@@ -78,52 +75,40 @@ async function createGrid(
   gridData: boolean[][]
 ): Promise<string> {
   const { gridColumns, gridRows, color, cellSize } = options;
-  console.log("Creating grid with options:", options);
-  console.log(
-    "Grid data dimensions:",
-    gridData.length,
-    "x",
-    gridData[0].length
-  );
 
-  // Ensure cell size is at least 0.01
-  const safeCellSize = Math.max(0.01, cellSize);
+  // Ensure cell size is at least 1 and is a whole number
+  const safeCellSize = Math.max(1, Math.round(cellSize));
 
   // Calculate total grid size
   const gridWidth = gridColumns * safeCellSize;
   const gridHeight = gridRows * safeCellSize;
 
-  // Ensure total grid size is at least 0.01 x 0.01
-  const safeGridWidth = Math.max(0.01, gridWidth);
-  const safeGridHeight = Math.max(0.01, gridHeight);
-  console.log(`safeGridHeight:`, safeGridHeight);
-  console.log(`safeGridWidth:`, safeGridWidth);
-
   const grid = figma.createFrame();
-  grid.resize(safeGridWidth, safeGridHeight);
+  grid.resize(gridWidth, gridHeight);
   grid.fills = [];
 
   const lineColor = { r: 0.8, g: 0.8, b: 0.8 };
-  const lineThickness = 1; // Ensure line thickness is not too large compared to cell size
+  const lineThickness = 1;
 
   // Create vertical lines
-  // Create vertical lines (excluding edges)
   for (let col = 1; col < gridColumns; col++) {
     const verticalLine = figma.createRectangle();
-    verticalLine.resize(lineThickness, gridRows * cellSize);
-    verticalLine.x = col * cellSize - lineThickness / 2;
+    verticalLine.resize(lineThickness, gridHeight);
+    verticalLine.x = col * safeCellSize;
     verticalLine.y = 0;
     verticalLine.fills = [{ type: "SOLID", color: lineColor }];
+    verticalLine.name = "Line";
     grid.appendChild(verticalLine);
   }
 
-  // Create horizontal lines (excluding edges)
+  // Create horizontal lines
   for (let row = 1; row < gridRows; row++) {
     const horizontalLine = figma.createRectangle();
-    horizontalLine.resize(gridColumns * cellSize, lineThickness);
+    horizontalLine.resize(gridWidth, lineThickness);
     horizontalLine.x = 0;
-    horizontalLine.y = row * cellSize - lineThickness / 2;
+    horizontalLine.y = row * safeCellSize;
     horizontalLine.fills = [{ type: "SOLID", color: lineColor }];
+    horizontalLine.name = "Line";
     grid.appendChild(horizontalLine);
   }
 
@@ -132,11 +117,29 @@ async function createGrid(
     for (let col = 0; col < gridColumns; col++) {
       if (gridData[row][col]) {
         const rect = figma.createRectangle();
-        const rectSize = Math.max(0.01, safeCellSize - lineThickness);
-        console.log(`Cell (${row}, ${col}) rectSize:`, rectSize);
-        rect.resize(rectSize, rectSize);
-        rect.x = col * safeCellSize + lineThickness / 2;
-        rect.y = row * safeCellSize + lineThickness / 2;
+
+        // Determine the size and position of the rectangle
+        let rectWidth, rectHeight, rectX, rectY;
+
+        if (col === 0) {
+          rectWidth = safeCellSize;
+          rectX = 0;
+        } else {
+          rectWidth = safeCellSize - lineThickness;
+          rectX = col * safeCellSize + lineThickness;
+        }
+
+        if (row === 0) {
+          rectHeight = safeCellSize;
+          rectY = 0;
+        } else {
+          rectHeight = safeCellSize - lineThickness;
+          rectY = row * safeCellSize + lineThickness;
+        }
+
+        rect.resize(rectWidth, rectHeight);
+        rect.x = rectX;
+        rect.y = rectY;
         rect.fills = [
           { type: "SOLID", color: color, opacity: Math.random() * 0.8 + 0.2 },
         ];
@@ -144,12 +147,6 @@ async function createGrid(
       }
     }
   }
-  console.log("Grid created with dimensions:", grid.width, "x", grid.height);
-  console.log("Number of children:", grid.children.length);
-  console.log(
-    "Number of colored cells:",
-    grid.children.filter((child) => child.type === "RECTANGLE").length
-  );
 
   figma.currentPage.appendChild(grid);
   return grid.id;
