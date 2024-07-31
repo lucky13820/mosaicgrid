@@ -8,8 +8,12 @@ interface GridOptions {
   density: number;
 }
 
-let currentGrid: string | null = null;
-let currentGridData: boolean[][] | null = null;
+interface GridCell {
+  active: boolean;
+  opacity: number;
+}
+
+let currentGridData: GridCell[][] | null = null;
 
 figma.ui.onmessage = async (msg: { type: string; options?: GridOptions }) => {
   try {
@@ -17,26 +21,12 @@ figma.ui.onmessage = async (msg: { type: string; options?: GridOptions }) => {
       currentGridData = createGridData(msg.options);
       figma.ui.postMessage({ type: "preview-data", data: currentGridData });
     } else if (msg.type === "insert-grid" && msg.options && currentGridData) {
-      if (currentGrid) {
-        const node = figma.getNodeById(currentGrid);
-        if (node) {
-          node.remove();
-        }
-      }
-
-      if (
-        !Array.isArray(currentGridData) ||
-        currentGridData.length === 0 ||
-        !Array.isArray(currentGridData[0])
-      ) {
-        throw new Error("Invalid grid data");
-      }
-
-      currentGrid = await createGrid(msg.options, currentGridData);
-      if (currentGrid) {
-        const node = figma.getNodeById(currentGrid) as FrameNode;
+      const gridId = await createGrid(msg.options, currentGridData);
+      if (gridId) {
+        const node = figma.getNodeById(gridId) as FrameNode;
         if (node) {
           figma.viewport.scrollAndZoomIntoView([node]);
+          figma.currentPage.selection = [node];
           figma.ui.postMessage({ type: "grid-inserted" });
           figma.notify("Grid inserted.");
         } else {
@@ -51,14 +41,18 @@ figma.ui.onmessage = async (msg: { type: string; options?: GridOptions }) => {
   }
 };
 
-function createGridData(options: GridOptions): boolean[][] {
+function createGridData(options: GridOptions): GridCell[][] {
   const { gridColumns, gridRows, density } = options;
-  const grid: boolean[][] = [];
+  const grid: GridCell[][] = [];
 
   for (let row = 0; row < gridRows; row++) {
     grid[row] = [];
     for (let col = 0; col < gridColumns; col++) {
-      grid[row][col] = Math.random() < density;
+      const active = Math.random() < density;
+      grid[row][col] = {
+        active: active,
+        opacity: active ? Math.random() * 0.8 + 0.2 : 0,
+      };
     }
   }
 
@@ -67,7 +61,7 @@ function createGridData(options: GridOptions): boolean[][] {
 
 async function createGrid(
   options: GridOptions,
-  gridData: boolean[][]
+  gridData: GridCell[][]
 ): Promise<string> {
   const { gridColumns, gridRows, color, cellSize } = options;
 
@@ -113,7 +107,7 @@ async function createGrid(
 
   for (let row = 0; row < gridRows; row++) {
     for (let col = 0; col < gridColumns; col++) {
-      if (gridData[row][col]) {
+      if (gridData[row][col].active) {
         const rect = figma.createRectangle();
 
         let rectWidth, rectHeight, rectX, rectY;
@@ -126,7 +120,6 @@ async function createGrid(
           rectX = col * safeCellSize;
         }
 
-        // Handle bottom edge
         if (row === gridRows - 1) {
           rectHeight = safeCellSize;
           rectY = row * safeCellSize;
@@ -139,23 +132,16 @@ async function createGrid(
         rect.x = rectX;
         rect.y = rectY;
         rect.fills = [
-          { type: "SOLID", color: color, opacity: Math.random() * 0.8 + 0.2 },
+          { type: "SOLID", color: color, opacity: gridData[row][col].opacity },
         ];
         mosaicFrame.appendChild(rect);
       }
     }
   }
 
-  // Add grid lines and mosaic frames to the main frame
   mainFrame.appendChild(gridLinesFrame);
   mainFrame.appendChild(mosaicFrame);
 
-  console.log(
-    "Grid created with dimensions:",
-    mainFrame.width,
-    "x",
-    mainFrame.height
-  );
   figma.currentPage.appendChild(mainFrame);
   return mainFrame.id;
 }

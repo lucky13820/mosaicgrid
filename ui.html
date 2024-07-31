@@ -269,7 +269,7 @@
           // Create colored cells
           msg.data.forEach((row, rowIndex) => {
             row.forEach((cell, colIndex) => {
-              if (cell) {
+              if (cell.active) {
                 const div = document.createElement("div");
                 div.className = "cell";
                 div.style.width = `${cellSize - 1}px`;
@@ -278,7 +278,7 @@
                 div.style.top = `${rowIndex * cellSize + 1}px`;
                 div.style.backgroundColor =
                   document.getElementById("color").value;
-                div.style.opacity = (Math.random() * 0.8 + 0.2).toString();
+                div.style.opacity = cell.opacity.toString();
                 preview.appendChild(div);
               }
             });
