@@ -1,0 +1,11 @@
+{
+  "name": "Cosmaic Design",
+  "id": "1400225727042233300",
+  "api": "1.0.0",
+  "main": "code.js",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "documentAccess": "dynamic-page",
+  "editorType": ["figma"],
+  "ui": "ui.html"
+}
