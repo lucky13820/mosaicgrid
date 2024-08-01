@@ -23,7 +23,7 @@ figma.ui.onmessage = async (msg: { type: string; options?: GridOptions }) => {
     } else if (msg.type === "insert-grid" && msg.options && currentGridData) {
       const gridId = await createGrid(msg.options, currentGridData);
       if (gridId) {
-        const node = figma.getNodeById(gridId) as FrameNode;
+        const node = (await figma.getNodeByIdAsync(gridId)) as FrameNode;
         if (node) {
           figma.viewport.scrollAndZoomIntoView([node]);
           figma.currentPage.selection = [node];

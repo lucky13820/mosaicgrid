@@ -5,6 +5,12 @@
   "main": "code.js",
   "capabilities": [],
   "enableProposedApi": false,
+  "networkAccess": {
+    "allowedDomains": ["https://cdn.jsdelivr.net"],
+    "reasoning": "Allows the plugin to fetch external resources from cdn.jsdelivr.net",
+    "devAllowedDomains": ["https://cdn.jsdelivr.net"]
+  },
+  "documentAccess": "dynamic-page",
   "editorType": ["figma"],
   "ui": "ui.html"
 }
